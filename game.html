@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Pong</title>
+    <style>
+        canvas {
+            background-color: black;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="pong" width="800" height="400"></canvas>
+
+    <script>
+        const canvas = document.getElementById("pong");
+        const context = canvas.getContext("2d");
+
+        // Paddle properties
+        const paddleWidth = 10;
+        const paddleHeight = 100;
+        const paddleSpeed = 8;
+        const player = {
+            x: 0,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            dy: paddleSpeed,
+            color: "white"
+        };
+        const computer = {
+            x: canvas.width - paddleWidth,
+            y: canvas.height / 2 - paddleHeight / 2,
+            width: paddleWidth,
+            height: paddleHeight,
+            dy: paddleSpeed,
+            color: "white"
+        };
+
+        // Ball properties
+        const ball = {
+            x: canvas.width / 2,
+            y: canvas.height / 2,
+            size: 10,
+            dx: 4,
+            dy: 4,
+            speed: 3,
+            color: "white"
+        };
+
+        // Game state
+        let isGamePaused = false;
+
+        // Draw the paddles
+        function drawPaddle(x, y, width, height, color) {
+            context.fillStyle = color;
+            context.fillRect(x, y, width, height);
+        }
+
+        // Draw the ball
+        function drawBall(x, y, size, color) {
+            context.fillStyle = color;
+            context.fillRect(x - size / 2, y - size / 2, size, size);
+        }
+
+        // Update the player's paddle position
+        function movePaddle(event) {
+            if (isGamePaused) return;
+
+            const key = event.key;
+            if (key === "w" || key === "W") {
+                if (player.y > 0) {
+                    player.y -= player.dy;
+                }
+            } else if (key === "s" || key === "S") {
+                if (player.y + player.height < canvas.height) {
+                    player.y += player.dy;
+                }
+            }
+        }
+
+        // Update the computer's paddle position
+        function moveComputerPaddle() {
+            const computerPaddleCenter = computer.y + computer.height / 2;
+
+            // Simple AI movement
+            if (computerPaddleCenter < ball.y) {
+                computer.y += computer.dy;
+            } else if (computerPaddleCenter > ball.y) {
+                computer.y -= computer.dy;
+            }
+        }
+
+        // Move the ball
+        function moveBall() {
+            ball.x += ball.dx;
+            ball.y += ball.dy;
+
+            // Check collision with paddles
+            if (
+                ball.x - ball.size / 2 < player.x + player.width &&
+                ball.x + ball.size / 2 > player.x &&
+                ball.y - ball.size / 2 < player.y + player.height &&
+                ball.y + ball.size / 2 > player.y
+            ) {
+                // Ball hits the player's paddle
+                ball.dx = -ball.dx;
+                ball.speed += 0.2;
+            } else if (
+                ball.x - ball.size / 2 < computer.x + computer.width &&
+                ball.x + ball.size / 2 > computer.x &&
+                ball.y - ball.size / 2 < computer.y + computer.height &&
+                ball.y + ball.size / 2 > computer.y
+            ) {
+                // Ball hits the computer's paddle
+                ball.dx = -ball.dx;
+                ball.speed += 0.2;
+            }
+
+            // Check collision with walls
+            if (ball.y + ball.size / 2 > canvas.height || ball.y - ball.size / 2 < 0) {
+                ball.dy = -ball.dy;
+            }
+
+            // Check if the ball goes out of bounds
+            if (ball.x + ball.size / 2 > canvas.width) {
+                // Player scores
+                resetGame("Player");
+            } else if (ball.x - ball.size / 2 < 0) {
+                // Computer scores
+                resetGame("Computer");
+            }
+        }
+
+        // Reset the game and serve the ball
+        function resetGame(winner) {
+            ball.x = canvas.width / 2;
+            ball.y = canvas.height / 2;
+            ball.speed = 3;
+
+            player.y = canvas.height / 2 - paddleHeight / 2;
+            computer.y = canvas.height / 2 - paddleHeight / 2;
+
+            ball.dx = ball.speed;
+            if (winner === "Player") {
+                ball.dx = -ball.dx;
+            }
+
+            isGamePaused = true;
+            let countdown = 3;
+            const countdownInterval = setInterval(() => {
+                if (countdown > 0) {
+                    countdown--;
+                } else {
+                    clearInterval(countdownInterval);
+                    isGamePaused = false;
+                }
+            }, 1000);
+        }
+
+        // Draw the pong table
+        function drawTable() {
+            // Clear the canvas
+            context.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw the paddles
+            drawPaddle(player.x, player.y, player.width, player.height, player.color);
+            drawPaddle(computer.x, computer.y, computer.width, computer.height, computer.color);
+
+            // Draw the ball
+            drawBall(ball.x, ball.y, ball.size, ball.color);
+
+            // Draw the dotted line
+            context.beginPath();
+            context.setLineDash([4]);
+            context.moveTo(canvas.width / 2, 0);
+            context.lineTo(canvas.width / 2, canvas.height);
+            context.strokeStyle = "gray";
+            context.stroke();
+        }
+
+        // Update the canvas
+        function update() {
+            if (!isGamePaused) {
+                moveComputerPaddle();
+                moveBall();
+            }
+            drawTable();
+        }
+
+        // Keyboard event listeners
+        document.addEventListener("keydown", movePaddle);
+
+        // Game loop
+        setInterval(update, 1000 / 60);
+    </script>
+</body>
+</html>
